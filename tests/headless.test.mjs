@@ -13,3 +13,10 @@ test('default MCP port coexists with the Type trainer on 7720',async t=>{
  const home=await mkdtemp(join(tmpdir(),'delta-mcp-ports-'));t.after(()=>rm(home,{recursive:true,force:true}));const old={...process.env};process.env.DELTA_HOME=home;process.env.DATA_DIR=join(home,'data/mcp');delete process.env.PORT;t.after(()=>{for(const k of['DELTA_HOME','DATA_DIR','PORT']){if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k]}});
  const service=await startMcp({call:async()=>[]});t.after(()=>service.stop());assert.equal((await service.handlers['mcp.info']()).listen.port,7730);
 });
+test('supervised launcher import starts MCP instead of silently exiting',async t=>{
+ const {spawn}=await import('node:child_process');const {createServer}=await import('node:http');const home=await mkdtemp(join(tmpdir(),'delta-mcp-launch-'));t.after(()=>rm(home,{recursive:true,force:true}));
+ let registered=false;const core=createServer(async(req,res)=>{let body='';for await(const c of req)body+=c;let result={};if(req.url==='/v1/call'){const q=JSON.parse(body);result=q.capability==='core.info'?{version:'0.4.4'}:[]}else if(req.method==='POST'&&req.url==='/v1/components'){registered=true;result={session:'fixture'}}else{await new Promise(r=>setTimeout(r,50));result={invocation:null}}res.setHeader('content-type','application/json');res.end(JSON.stringify({ok:true,result}))});await new Promise(r=>core.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>{core.close(r);core.closeAllConnections()}));
+ const launcher=join(home,'launch.mjs');await writeFile(launcher,`await import(${JSON.stringify(new URL('../server/main.mjs',import.meta.url).href)});`);
+ const child=spawn(process.execPath,[launcher],{env:{...process.env,DELTA_COMPONENT_ID:'mcp',DELTA_HOME:home,DATA_DIR:join(home,'data/mcp'),DELTA_TOKEN:'fixture',DELTA_URL:'http://127.0.0.1:'+core.address().port,PORT:'0'},stdio:'ignore'});t.after(()=>child.kill('SIGTERM'));
+ for(let i=0;i<100&&!registered&&child.exitCode===null;i++)await new Promise(r=>setTimeout(r,30));assert(registered,'managed launcher must register the component');child.kill('SIGTERM');await new Promise(r=>child.once('exit',r));
+});

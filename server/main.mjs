@@ -20,6 +20,6 @@ export async function startMcp(client){
  if(!['127.0.0.1','::1','localhost'].includes(host)&&!process.env.PUBLIC_ORIGIN?.startsWith('https://'))throw Error('Remote MCP requires an explicit HTTPS PUBLIC_ORIGIN');
  const server=createServer((req,res)=>{const path=new URL(req.url,'http://localhost').pathname;if(!path.startsWith('/mcp/')){res.writeHead(404);res.end();return}void mcp.http(req,res,path).catch(()=>{if(!res.headersSent)res.writeHead(503);res.end()})});
  await new Promise((ok,fail)=>{server.once('error',fail);server.listen(port,host,ok)});
- return{handlers:{...mcp.handlers,'mcp.info':async()=>({version:'0.1.1',transport:'streamable-http',listen:{host,port:server.address().port},path:'/mcp/:id'})},stop:()=>new Promise(ok=>{server.close(ok);server.closeAllConnections()})};
+ return{handlers:{...mcp.handlers,'mcp.info':async()=>({version:'0.1.2',transport:'streamable-http',listen:{host,port:server.address().port},path:'/mcp/:id'})},stop:()=>new Promise(ok=>{server.close(ok);server.closeAllConnections()})};
 }
-if(process.argv[1]&&import.meta.url===(await import('node:url')).pathToFileURL(process.argv[1]).href)await runtime(startMcp);
+if(process.env.DELTA_COMPONENT_ID==='mcp'||process.argv[1]&&import.meta.url===(await import('node:url')).pathToFileURL(process.argv[1]).href)await runtime(startMcp);
