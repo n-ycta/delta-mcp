@@ -13,6 +13,7 @@ export const safeCapabilities = [
   'storage.health',
   'storage.query',
   'web.metrics_query',
+  'observability.query',
   'web.nodes_list',
   'web.plugins_list',
   'supervisor.list',
@@ -41,7 +42,7 @@ export function constrain(profile, cap, args) {
     throw new DeltaError('forbidden', 'Select an allowed target node');
   if (profile.nodes.length && a.nodeId && !profile.nodes.includes(a.nodeId))
     throw new DeltaError('forbidden', 'Node is outside this profile');
-  const q = cap === 'web.metrics_query' ? a.query : cap === 'storage.query' ? a : null;
+  const q = ['web.metrics_query','observability.query'].includes(cap) ? a.query : cap === 'storage.query' ? a : null;
   if (q?.nodeId && profile.nodes.length && !profile.nodes.includes(q.nodeId))
     throw new DeltaError('forbidden', 'Node is outside this profile');
   if (q) {
@@ -119,7 +120,7 @@ export function toolSchema(name, cap = {}, profile = { nodes: [] }) {
     delete properties[k].required;
     if (v.required === true) required.push(k);
   }
-  if (name === 'web.metrics_query') {
+  if (['web.metrics_query','observability.query'].includes(name)) {
     properties.query = metricQuerySchema;
     required.push('query');
   }
@@ -179,8 +180,22 @@ export async function createMcp(
     queue = p.catch(() => {});
     return p;
   };
+  // Preserve public MCP credentials while migrating only the equivalent facade read scope.
+  // Never refresh a revoked profile repeatedly or widen it to wildcard/admin access.
+  const scopesFor = p => [...new Set([
+    ...p.capabilities.map(c=>((p.adminCapabilities||[]).includes(c)?'admin:':'call:')+c),
+    ...(p.capabilities.includes('web.metrics_query')?['call:observability.query']:[]),
+  ])];
+  for(const p of profiles){
+    if(p.pendingRevoke){await service.call('tokens.revoke',{id:p.pendingRevoke});delete p.pendingRevoke;await save()}
+    if(!p.capabilities.includes('web.metrics_query')||p.forwardingVersion===1)continue;
+    const old={token:p.token,tokenId:p.tokenId},t=await service.call('tokens.create',{name:'mcp:'+p.id,scopes:scopesFor(p)});
+    p.token=t.token;p.tokenId=t.id;p.forwardingVersion=1;p.pendingRevoke=old.tokenId;
+    try{await save()}catch(e){Object.assign(p,old);delete p.forwardingVersion;delete p.pendingRevoke;await service.call('tokens.revoke',{id:t.id}).catch(()=>{});throw e}
+    await service.call('tokens.revoke',{id:old.tokenId});delete p.pendingRevoke;await save();
+  }
   const publicProfile = (p) => {
-    const { secretHash, token, tokenId, ...rest } = p;
+    const { secretHash, token, tokenId, pendingRevoke, forwardingVersion, ...rest } = p;
     return rest;
   };
   const discover = async () => {
@@ -290,10 +305,9 @@ export async function createMcp(
         throw new DeltaError('forbidden', 'Selected capability is outside allowed plugins');
       const t = await service.call('tokens.create', {
         name: 'mcp:' + id,
-        scopes: record.capabilities.map(
-          (c) => (record.adminCapabilities.includes(c) ? 'admin:' : 'call:') + c,
-        ),
+        scopes: scopesFor(record),
       });
+      record.forwardingVersion=1;
       record.token = t.token;
       record.tokenId = t.id;
       profiles.push(record);
