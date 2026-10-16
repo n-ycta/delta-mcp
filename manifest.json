@@ -1,0 +1,85 @@
+{
+  "id": "mcp",
+  "version": "0.1.0",
+  "description": "Headless mcp service; no Web or graphical host required.",
+  "metadata": {
+    "ui": {
+      "id": "dev.delta.mcp",
+      "name": "Delta Mcp",
+      "version": "0.1.0",
+      "contract": "^1.5.0",
+      "description": "Headless mcp service; no Web or graphical host required.",
+      "publisher": "Delta",
+      "icon": "plug",
+      "category": "system",
+      "runtime": {
+        "targets": [
+          "desktop",
+          "vps",
+          "container"
+        ]
+      },
+      "capabilities": [
+        "actions"
+      ],
+      "metrics": [],
+      "repository": "https://github.com/n-ycta/delta-mcp",
+      "permissions": [
+        {
+          "scope": "admin",
+          "reason": "Trusted executable service; OS sandboxing is not provided.",
+          "optional": false
+        }
+      ],
+      "dependencies": [
+        {
+          "kind": "core",
+          "version": ">=0.4.3, <0.5.0",
+          "required": true,
+          "id": "core"
+        }
+      ]
+    }
+  },
+  "capabilities": [
+    {
+      "name": "list",
+      "params": {},
+      "admin": true,
+      "description": "Mcp API: list"
+    },
+    {
+      "name": "catalog",
+      "params": {},
+      "admin": true,
+      "description": "Mcp API: catalog"
+    },
+    {
+      "name": "create",
+      "params": {
+        "profile": {
+          "type": "object",
+          "required": true
+        }
+      },
+      "admin": true,
+      "description": "Mcp API: create"
+    },
+    {
+      "name": "revoke",
+      "params": {
+        "id": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "admin": true,
+      "description": "Mcp API: revoke"
+    },
+    {
+      "name": "info",
+      "admin": false,
+      "params": {}
+    }
+  ]
+}

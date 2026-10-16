@@ -1,0 +1,2 @@
+import{test}from'node:test';import assert from'node:assert/strict';import{readFile}from'node:fs/promises';
+test('independent service contract',async()=>{const m=JSON.parse(await readFile(new URL('../manifest.json',import.meta.url)));assert.equal(m.id,'mcp');assert(m.capabilities.length);assert(m.capabilities.every(c=>!c.name.startsWith('web.')));assert(!JSON.stringify(m).includes('register:web'));});
