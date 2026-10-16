@@ -18,7 +18,7 @@ Core authenticates API calls. Forwarded calls retain the original principal thro
 
 ## Data and migration
 
-Profiles migrate atomically from the previous Web data directory, preserving profile IDs, secrets and issued token scopes. Migration refuses an active legacy Web process. The independent HTTP listener defaults to localhost:7720; Web can proxy existing `/mcp/:id` addresses. Configure a trusted HTTPS reverse proxy for remote use.
+Profiles migrate atomically from the previous Web data directory, preserving profile IDs, secrets and issued token scopes. Migration refuses an active legacy Web process. The independent HTTP listener defaults to localhost:7730; Web can proxy existing `/mcp/:id` addresses. Configure a trusted HTTPS reverse proxy for remote use.
 
 ## Verification
 

@@ -16,10 +16,10 @@ export async function startMcp(client){
  const home=process.env.DELTA_HOME;if(!home)throw Error('DELTA_HOME required');
  const dir=resolve(process.env.DATA_DIR||join(home,'data','mcp'));await migrateProfiles(client,home,dir);
  const mcp=await createMcp(client,join(dir,'profiles.json'));
- const host=process.env.HOST||'127.0.0.1',port=Number(process.env.PORT||7720);
+ const host=process.env.HOST||'127.0.0.1',port=Number(process.env.PORT||7730);
  if(!['127.0.0.1','::1','localhost'].includes(host)&&!process.env.PUBLIC_ORIGIN?.startsWith('https://'))throw Error('Remote MCP requires an explicit HTTPS PUBLIC_ORIGIN');
  const server=createServer((req,res)=>{const path=new URL(req.url,'http://localhost').pathname;if(!path.startsWith('/mcp/')){res.writeHead(404);res.end();return}void mcp.http(req,res,path).catch(()=>{if(!res.headersSent)res.writeHead(503);res.end()})});
  await new Promise((ok,fail)=>{server.once('error',fail);server.listen(port,host,ok)});
- return{handlers:{...mcp.handlers,'mcp.info':async()=>({version:'0.1.0',transport:'streamable-http',listen:{host,port:server.address().port},path:'/mcp/:id'})},stop:()=>new Promise(ok=>{server.close(ok);server.closeAllConnections()})};
+ return{handlers:{...mcp.handlers,'mcp.info':async()=>({version:'0.1.1',transport:'streamable-http',listen:{host,port:server.address().port},path:'/mcp/:id'})},stop:()=>new Promise(ok=>{server.close(ok);server.closeAllConnections()})};
 }
 if(process.argv[1]&&import.meta.url===(await import('node:url')).pathToFileURL(process.argv[1]).href)await runtime(startMcp);

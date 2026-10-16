@@ -1,12 +1,12 @@
 {
   "id": "mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Headless mcp service; no Web or graphical host required.",
   "metadata": {
     "ui": {
       "id": "dev.delta.mcp",
       "name": "Delta Mcp",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "contract": "^1.5.0",
       "description": "Headless mcp service; no Web or graphical host required.",
       "publisher": "Delta",
